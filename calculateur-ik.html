@@ -139,16 +139,12 @@
                 </div>
                 <div>
                     <label for="annee">Année de déclaration</label>
-                    <select id="annee" onchange="onAnneeChange()">
+                    <select id="annee">
                         <option value="2024">2024 (revenus 2023)</option>
-                        <option value="2025" selected>2025 (revenus 2024)</option>
-                        <option value="2026">2026 (revenus 2025) ⚠️</option>
+                        <option value="2025">2025 (revenus 2024)</option>
+                        <option value="2026" selected>2026 (revenus 2025)</option>
                     </select>
                 </div>
-            </div>
-            <div id="warn-annee" class="warning" style="display:none">
-                ⚠️ Le barème 2026 n'a pas pu être vérifié (publié après ma date de connaissance).
-                Confirmez les taux officiels sur <strong>impots.gouv.fr</strong> avant de soumettre.
             </div>
         </div>
     </div>
@@ -197,7 +193,8 @@
 <script>'use strict';
 
 // ── Barèmes ───────────────────────────────────────────────────────────────────
-// Source : arrêtés DGFiP. 2026 = taux provisoires identiques à 2025 (à vérifier).
+// Source : DGFiP / service-public.fr. Barème 2026 (revenus 2025) officiel :
+// non revalorisé, identique à 2024 et 2025 (dernière hausse en 2023, +5,4 %).
 const BAREMES = {
     2024: {
         3: { t1: 0.529, a2: 0.316, b2: 1065,  t3: 0.370 },
@@ -223,7 +220,7 @@ const BAREMES = {
 };
 
 function appliquerBareme(d, cv, annee) {
-    const b = (BAREMES[annee] ?? BAREMES[2025])[cv];
+    const b = (BAREMES[annee] ?? BAREMES[2026])[cv];
     if (d <= 5000)  return { montant: d * b.t1,        tranche: `≤ 5 000 km (${b.t1.toFixed(3)} €/km)` };
     if (d <= 20000) return { montant: d * b.a2 + b.b2, tranche: `5 001–20 000 km (formule linéaire)` };
     return                 { montant: d * b.t3,         tranche: `> 20 000 km (${b.t3.toFixed(3)} €/km)` };
@@ -452,11 +449,6 @@ function exportPDF() {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function onAnneeChange() {
-    const annee = document.getElementById('annee').value;
-    document.getElementById('warn-annee').style.display = annee === '2026' ? '' : 'none';
-}
-
 function escHtml(s) {
     return String(s)
         .replace(/&/g, '&amp;').replace(/</g, '&lt;')
