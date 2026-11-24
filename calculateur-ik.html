@@ -1,459 +1,1071 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculateur d'Indemnités Kilométriques</title>
-    <style>
-        :root {
-            --primary: #2563eb;
-            --primary-dark: #1d4ed8;
-            --success: #16a34a;
-            --danger: #dc2626;
-            --bg: #f3f4f6;
-            --card: #ffffff;
-            --text: #1f2937;
-            --muted: #6b7280;
-            --border: #e5e7eb;
-        }
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            padding: 1.5rem;
-        }
-        .container { max-width: 580px; margin: 0 auto; }
-        h1 { font-size: 1.4rem; text-align: center; color: var(--primary); margin-bottom: 1.25rem; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Frais kilométriques</title>
+<meta name="theme-color" content="#0E0F30">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<!-- Génération du PDF en téléchargement direct (fonctionne aussi sur mobile) -->
+<script defer src="https://cdn.jsdelivr.net/npm/jspdf@4.2.1/dist/jspdf.umd.min.js"
+        integrity="sha384-qovJwSBbRDPP5cEjCp8S0UP66wrvnjaa60XMOGzTNanrThcrGfXfnZkvgY8N1KT3"
+        crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/jspdf-autotable@5.0.8/dist/jspdf.plugin.autotable.min.js"
+        integrity="sha384-5jk55M0XWoAw7LyhlXJe19ErOr3doBAPzxw9vahPFbvolqWa2yDk4fhHa2zuYeOa"
+        crossorigin="anonymous"></script>
+<style>
+  /* Couleurs : bleu nuit #0E0F30 + vert #1AAB8E */
+  :root {
+    --navy: #0E0F30;
+    --teal: #1AAB8E;
+    --teal-hover: #17977E;
+    --teal-ink: #0F7A65;   /* vert assombri pour le texte sur fond blanc (contraste AA) */
+    --teal-dark: #0B5E4E;
+    --teal-50: #EAF7F3;
+    --teal-100: #CDEDE5;
+    --bg: #F3F5F7;
+    --card: #FFFFFF;
+    --text: #0E0F30;
+    --muted: #5B6075;
+    --border: #E1E5EA;
+    --border-strong: #C9CFD8;
+    --danger: #B42318;
+    --danger-bg: #FDECEC;
+    --warn-bg: #FFF4D6;
+    --warn-ink: #7A4D00;
+    --radius: 12px;
+    color-scheme: light;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  [hidden] { display: none !important; }
 
-        /* Cards */
-        .card { background: var(--card); border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,.1); margin-bottom: 1rem; }
-        .card-header {
-            display: flex; align-items: center; gap: .5rem;
-            padding: .65rem 1rem;
-            background: #eff6ff; border-radius: 10px 10px 0 0; border-bottom: 1px solid #bfdbfe;
-        }
-        .card-header-name {
-            flex: 1; border: none; background: transparent;
-            font-weight: 600; font-size: .95rem; color: var(--primary);
-            min-width: 0; padding: 0;
-        }
-        .card-header-name:focus { outline: none; }
-        .card-body { padding: 1rem; }
+  /* ── En-tête ── */
+  .topbar { background: var(--navy); border-bottom: 4px solid var(--teal); }
+  .topbar-inner {
+    max-width: 920px; margin: 0 auto; padding: 16px 20px;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  }
+  .app-title { display: flex; align-items: center; gap: 10px; color: #fff; font-size: 1.15rem; font-weight: 700; }
+  .app-title svg { color: var(--teal); flex-shrink: 0; }
 
-        /* Badges */
-        .badge { font-size: .75rem; padding: .2rem .6rem; border-radius: 999px; white-space: nowrap; }
-        .badge-pending { background: #fef9c3; color: #a16207; }
-        .badge-ok      { background: #dcfce7; color: #15803d; }
-        .badge-error   { background: #fee2e2; color: #b91c1c; }
+  .page { max-width: 920px; margin: 0 auto; padding: 28px 20px 48px; }
+  .intro h1 { margin: 0 0 4px; font-size: 1.65rem; font-weight: 800; letter-spacing: -.01em; }
+  .intro p { margin: 0 0 22px; color: var(--muted); }
 
-        /* Form */
-        label { display: block; font-size: .8rem; font-weight: 500; color: var(--muted); margin-bottom: .3rem; }
-        input[type=text], input[type=date], input[type=number], select {
-            width: 100%; padding: .55rem .7rem;
-            border: 1px solid var(--border); border-radius: 6px;
-            font-size: .9rem; color: var(--text); background: white; margin-bottom: .75rem;
-        }
-        input:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(37,99,235,.15); }
-        .check-row { display: flex; align-items: center; gap: .5rem; margin-bottom: .75rem; }
-        .check-row input[type=checkbox] { width: 1rem; height: 1rem; accent-color: var(--primary); flex-shrink: 0; }
-        .check-row label { margin: 0; font-size: .85rem; color: var(--text); cursor: pointer; }
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 16px; }
+  .card-pad { padding: 18px 20px; }
+  .eyebrow {
+    margin: 0 0 12px; font-size: .72rem; font-weight: 700;
+    letter-spacing: .09em; text-transform: uppercase; color: var(--teal-ink);
+  }
 
-        /* Buttons */
-        .btn { padding: .55rem 1rem; border: none; border-radius: 6px; font-size: .9rem; font-weight: 600; cursor: pointer; transition: opacity .15s; }
-        .btn:hover { opacity: .85; }
-        .btn:disabled { opacity: .45; cursor: not-allowed; }
-        .btn-primary  { background: var(--primary); color: white; }
-        .btn-outline  { background: transparent; color: var(--primary); border: 1.5px solid var(--primary); }
-        .btn-danger-ghost { background: transparent; color: var(--danger); border: 1px solid var(--danger); padding: .25rem .55rem; font-size: .75rem; }
-        .btn-block { width: 100%; }
-        .btn-row { display: flex; gap: .75rem; margin-top: .75rem; }
-        .btn-row .btn { flex: 1; }
+  /* ── Formulaires ── */
+  .field { min-width: 0; }
+  label { display: block; margin-bottom: 6px; font-size: .8rem; font-weight: 600; color: var(--muted); }
+  .opt { font-weight: 400; }
+  input[type=text], input[type=date], input[type=number], select {
+    width: 100%; min-height: 44px; padding: 8px 12px;
+    font: inherit; font-size: 1rem; color: var(--text);
+    background: #fff; border: 1px solid var(--border-strong); border-radius: 8px;
+  }
+  input::placeholder { color: #8A90A3; }
+  input:focus-visible, select:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; border-color: var(--teal); }
+  .grid { display: grid; gap: 14px 16px; }
+  .grid-2 { grid-template-columns: 1fr 1fr; }
+  .grid-info { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1.25fr); }
+  .grid-dates { grid-template-columns: 1fr 1fr 150px; align-items: end; }
+  .check {
+    display: inline-flex; align-items: center; gap: 8px; margin: 0;
+    font-size: .9rem; font-weight: 500; color: var(--text); cursor: pointer;
+  }
+  .check input { width: 18px; height: 18px; margin: 0; accent-color: var(--teal-ink); }
 
-        /* Misc */
-        .dist-ok {
-            background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px;
-            padding: .45rem .75rem; font-size: .85rem; color: #166534;
-            margin-bottom: .75rem; display: none;
-        }
-        .loading-msg { font-size: .82rem; color: var(--muted); text-align: center; padding: .4rem 0; display: none; }
-        .btn-add-trajet {
-            width: 100%; padding: .7rem; background: white;
-            border: 2px dashed #93c5fd; border-radius: 10px;
-            color: var(--primary); font-size: .95rem; font-weight: 600;
-            cursor: pointer; margin-bottom: 1rem; transition: background .15s;
-        }
-        .btn-add-trajet:hover { background: #eff6ff; }
-        .warning {
-            background: #fffbeb; border: 1px solid #fcd34d; border-radius: 6px;
-            padding: .6rem .75rem; font-size: .8rem; color: #92400e; margin-top: .5rem;
-        }
+  /* ── Boutons ── */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 44px; padding: 0 18px; border: 0; border-radius: 8px;
+    font: inherit; font-size: .95rem; font-weight: 700; cursor: pointer;
+    transition: background-color .15s, border-color .15s, color .15s;
+  }
+  .btn svg, .btn-ghost svg, .btn-add svg { flex-shrink: 0; }
+  .btn:disabled { opacity: .55; cursor: progress; }
+  .btn-primary { background: var(--teal); color: var(--navy); }
+  .btn-primary:hover { background: var(--teal-hover); }
+  .btn-navy { background: var(--navy); color: #fff; }
+  .btn-navy:hover { background: #24254A; }
+  .btn-outline { background: #fff; color: var(--navy); border: 1.5px solid var(--navy); }
+  .btn-outline:hover { background: var(--teal-50); }
+  .btn-sm { min-height: 38px; padding: 0 14px; font-size: .88rem; }
+  .btn-ghost {
+    display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px;
+    background: #fff; color: var(--navy); border: 1px solid var(--border-strong); border-radius: 8px;
+    font: inherit; font-size: .85rem; font-weight: 600; cursor: pointer;
+  }
+  .btn-ghost:hover { border-color: var(--teal); color: var(--teal-ink); }
+  .btn-ghost.danger:hover { border-color: var(--danger); color: var(--danger); }
+  .btn-add {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; min-height: 52px; margin-bottom: 16px;
+    background: #fff; color: var(--teal-ink); border: 2px dashed var(--teal); border-radius: var(--radius);
+    font: inherit; font-weight: 700; cursor: pointer;
+  }
+  .btn-add:hover { background: var(--teal-50); }
+  .btn:focus-visible, .btn-ghost:focus-visible, .btn-add:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
 
-        /* Results */
-        .result-placeholder { font-size: .85rem; color: var(--muted); text-align: center; padding: 1rem 0; }
-        .summary-table { width: 100%; border-collapse: collapse; font-size: .85rem; margin-bottom: 1rem; }
-        .summary-table th {
-            text-align: left; padding: .4rem .5rem; background: var(--bg);
-            color: var(--muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .03em;
-        }
-        .summary-table td { padding: .4rem .5rem; border-bottom: 1px solid var(--border); }
-        .summary-table tfoot td { border-top: 2px solid var(--primary); border-bottom: none; font-weight: 700; color: var(--primary); }
-        .big-total { text-align: center; font-size: 2.2rem; font-weight: 800; color: var(--primary); padding: .75rem 0 .25rem; }
-        .bareme-info { text-align: center; font-size: .8rem; color: var(--muted); margin-bottom: .5rem; }
-        .footnote { font-size: .72rem; color: var(--muted); text-align: center; margin-top: .75rem; }
+  /* ── Cartes trajet ── */
+  .trajet { border-left: 4px solid var(--teal); }
+  .trajet-head {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 10px 14px 10px 16px; background: var(--teal-50);
+    border-bottom: 1px solid var(--border); border-radius: 0 var(--radius) 0 0;
+  }
+  .trajet-num { font-weight: 800; }
+  .trajet-actions { margin-left: auto; display: flex; gap: 8px; }
+  .trajet-body { display: grid; gap: 14px; padding: 16px; }
+  .badge { padding: 3px 10px; border-radius: 999px; font-size: .75rem; font-weight: 700; white-space: nowrap; }
+  .badge-pending { background: var(--warn-bg); color: var(--warn-ink); }
+  .badge-ok { background: var(--teal-100); color: var(--teal-dark); }
+  .badge-error { background: var(--danger-bg); color: var(--danger); }
+  .route-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .dist-line { margin: 0; padding: 9px 12px; border-radius: 8px; font-size: .9rem; }
+  .dist-line.ok { background: var(--teal-50); color: var(--teal-dark); }
+  .dist-line.busy { background: #F1F3F6; color: var(--muted); }
+  .dist-line.err { background: var(--danger-bg); color: var(--danger); }
+  .field-err { margin: -6px 0 0; color: var(--danger); font-size: .85rem; }
+  @keyframes flash {
+    from { box-shadow: 0 0 0 4px rgba(26, 171, 142, .55); }
+    to   { box-shadow: 0 0 0 0 rgba(26, 171, 142, 0); }
+  }
+  .flash { animation: flash 1.4s ease-out; }
 
-        /* Print */
-        .print-only { display: none; }
-        @media print {
-            body { background: white; padding: .5cm; }
-            .no-print { display: none !important; }
-            .print-only { display: block !important; }
-            .card { box-shadow: none; border: 1px solid #ddd; break-inside: avoid; }
-            .btn-row { display: none !important; }
-            .big-total { font-size: 1.8rem; }
-            h1 { display: none; }
-        }
-    </style>
+  /* ── Récapitulatif ── */
+  .recap-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  .recap-head h2 { margin: 0; font-size: 1.15rem; font-weight: 800; }
+  .chip { padding: 4px 12px; border-radius: 999px; background: var(--teal-50); color: var(--teal-ink); font-size: .85rem; font-weight: 700; }
+  .placeholder { margin: 4px 0 0; color: var(--muted); }
+  .alert-err {
+    margin: 0 0 16px; padding: 12px 14px; border: 1px solid #F3C1BD; border-radius: 8px;
+    background: var(--danger-bg); color: #8F1D15; font-size: .9rem;
+  }
+  .alert-err ul { margin: 6px 0 0; padding-left: 20px; }
+  .stale { margin: 0 0 12px; padding: 10px 12px; border-radius: 8px; background: var(--warn-bg); color: var(--warn-ink); font-size: .88rem; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  table.recap { width: 100%; min-width: 720px; border-collapse: collapse; font-size: .88rem; }
+  table.recap th {
+    padding: 10px 12px; background: var(--navy); color: #fff; text-align: left;
+    font-size: .72rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap;
+  }
+  table.recap td { padding: 10px 12px; border-top: 1px solid var(--border); vertical-align: top; }
+  table.recap tbody tr:nth-child(even) td { background: #F8FAFB; }
+  table.recap .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  table.recap td:first-child { min-width: 180px; }
+  table.recap td:nth-child(2) { white-space: nowrap; }
+  table.recap .sub { display: block; margin-top: 2px; color: var(--muted); font-size: .78rem; font-weight: 400; white-space: nowrap; }
+  table.recap tfoot td { background: var(--teal-50); border-top: 2px solid var(--teal); font-size: .95rem; font-weight: 800; }
+  .montant {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+    margin-top: 16px; padding: 16px 20px; border-radius: 10px; background: var(--navy); color: #fff;
+  }
+  .montant-label { font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #C9CBD8; }
+  .montant-info { margin-top: 2px; font-size: .85rem; color: #E4E5EE; }
+  .montant-value { font-size: 2rem; font-weight: 800; color: var(--teal); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .note { margin: 10px 0 0; color: var(--muted); font-size: .82rem; }
+  .actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 18px; }
+  .actions .btn { flex: 1 1 200px; }
+  .site-foot { margin-top: 28px; color: var(--muted); font-size: .78rem; text-align: center; }
+  .site-foot p { margin: 0; }
+  .site-foot .credit { margin-top: 6px; color: var(--teal-ink); font-weight: 600; }
+
+  @media (max-width: 680px) {
+    .grid-2, .grid-info { grid-template-columns: 1fr; }
+    .grid-dates { grid-template-columns: 1fr 1fr; }
+    .grid-dates .field-nb { grid-column: 1 / -1; }
+    .intro h1 { font-size: 1.4rem; }
+  }
+  @media (max-width: 480px) {
+    .page { padding: 20px 14px 40px; }
+    .btn-ghost .btn-text { display: none; }
+    .montant-value { font-size: 1.7rem; }
+  }
+  @media (prefers-reduced-motion: reduce) { .flash { animation: none; } }
+
+  /* ── Impression (secours si la génération du PDF est indisponible) ── */
+  .print-only { display: none; }
+  @media print {
+    @page { size: A4; margin: 12mm; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { background: #fff; font-size: 11px; }
+    .no-print { display: none !important; }
+    .print-only { display: block !important; }
+    .print-only h1 { margin: 0 0 2px; font-size: 18px; }
+    .print-only p { margin: 0 0 12px; color: var(--muted); }
+    .topbar-inner { max-width: none; padding: 10px 14px; }
+    .page { max-width: none; padding: 12px 0 0; }
+    .card { border: 0; }
+    .card-pad { padding: 0; }
+    .table-wrap { overflow: visible; border: 0; }
+    table.recap { min-width: 0; }
+    table.recap tr { break-inside: avoid; }
+  }
+</style>
 </head>
 <body>
-<div class="container">
-    <h1>Mes Indemnités Kilométriques</h1>
 
-    <!-- Print-only header (populated by JS) -->
-    <div id="print-header" class="print-only"></div>
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="app-title">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>
+      Frais kilométriques
+    </div>
+  </div>
+</header>
 
-    <!-- Véhicule + Année -->
-    <div class="card no-print">
-        <div class="card-body">
-            <div class="grid-2">
-                <div>
-                    <label for="cv">Puissance fiscale</label>
-                    <select id="cv">
-                        <option value="3">3 CV et moins</option>
-                        <option value="4">4 CV</option>
-                        <option value="5" selected>5 CV</option>
-                        <option value="6">6 CV</option>
-                        <option value="7">7 CV et plus</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="annee">Année de déclaration</label>
-                    <select id="annee">
-                        <option value="2024">2024 (revenus 2023)</option>
-                        <option value="2025">2025 (revenus 2024)</option>
-                        <option value="2026" selected>2026 (revenus 2025)</option>
-                    </select>
-                </div>
-            </div>
-        </div>
+<main class="page">
+  <section class="intro no-print">
+    <h1>Relevé de frais kilométriques</h1>
+    <p>Ajoutez vos trajets, calculez les distances, puis téléchargez votre relevé en PDF.</p>
+  </section>
+
+  <div class="print-only" id="print-entete"></div>
+
+  <section class="card card-pad no-print" aria-labelledby="titre-infos">
+    <p class="eyebrow" id="titre-infos">Informations</p>
+    <div class="grid grid-info">
+      <div class="field">
+        <label for="nom-client">Nom ou société <span class="opt">(facultatif, figure sur le PDF)</span></label>
+        <input type="text" id="nom-client" placeholder="Ex : Marie Dupont" autocomplete="name">
+      </div>
+      <div class="field">
+        <label for="cv">Puissance fiscale</label>
+        <select id="cv">
+          <option value="3">3 CV et moins</option>
+          <option value="4">4 CV</option>
+          <option value="5" selected>5 CV</option>
+          <option value="6">6 CV</option>
+          <option value="7">7 CV et plus</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="annee">Barème</label>
+        <select id="annee">
+          <option value="2024">2024 (revenus 2023)</option>
+          <option value="2025">2025 (revenus 2024)</option>
+          <option value="2026" selected>2026 (revenus 2025)</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <div id="trajets" class="no-print"></div>
+
+  <button type="button" class="btn-add no-print" id="btn-ajouter">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+    Ajouter un trajet
+  </button>
+
+  <section class="card card-pad" aria-labelledby="titre-recap">
+    <div class="recap-head">
+      <h2 id="titre-recap">Récapitulatif</h2>
+      <span class="chip" id="periode-chip" hidden></span>
     </div>
 
-    <!-- Trajets dynamiques -->
-    <div id="trajets-container"></div>
+    <div class="alert-err no-print" id="erreurs" role="alert" hidden></div>
+    <p class="placeholder no-print" id="recap-vide">Calculez la distance de chaque trajet, puis cliquez sur « Calculer mes IK ».</p>
 
-    <button class="btn-add-trajet no-print" onclick="ajouterTrajet()">+ Ajouter un trajet</button>
-
-    <!-- Résultats -->
-    <div class="card">
-        <div class="card-body">
-            <div id="result-placeholder" class="result-placeholder">
-                Calculez la distance de chaque trajet puis cliquez sur « Calculer mes IK ».
-            </div>
-            <div id="result-content" style="display:none">
-                <table class="summary-table">
-                    <thead>
-                        <tr>
-                            <th>Trajet</th>
-                            <th>Km/jour</th>
-                            <th>Jours</th>
-                            <th>Total km</th>
-                        </tr>
-                    </thead>
-                    <tbody id="summary-tbody"></tbody>
-                    <tfoot>
-                        <tr>
-                            <td colspan="3">Total annuel</td>
-                            <td id="total-km-cell">—</td>
-                        </tr>
-                    </tfoot>
-                </table>
-                <div class="big-total" id="montant-final">—</div>
-                <div class="bareme-info" id="bareme-info"></div>
-            </div>
-            <div class="btn-row no-print">
-                <button class="btn btn-primary" onclick="calculerIK()">Calculer mes IK</button>
-                <button class="btn btn-outline" id="btn-pdf" onclick="exportPDF()" style="display:none">⬇ Exporter PDF</button>
-            </div>
-            <p class="footnote">* Le barème s'applique sur la distance annuelle totale (tous trajets cumulés).</p>
+    <div id="recap" hidden>
+      <p class="stale no-print" id="obsolete" hidden>Le récapitulatif n'est plus à jour : complétez les trajets puis cliquez sur « Calculer mes IK ».</p>
+      <div class="table-wrap">
+        <table class="recap">
+          <thead>
+            <tr>
+              <th>Trajet</th>
+              <th>Date</th>
+              <th>Lieu de départ</th>
+              <th>Lieu d'arrivée</th>
+              <th class="num">Nombre<br>de fois</th>
+              <th class="num">Km total</th>
+            </tr>
+          </thead>
+          <tbody id="recap-corps"></tbody>
+          <tfoot>
+            <tr>
+              <td colspan="5" class="num" id="total-libelle">Total annuel</td>
+              <td class="num" id="total-km">—</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div class="montant">
+        <div>
+          <div class="montant-label">Indemnités kilométriques</div>
+          <div class="montant-info" id="montant-total"></div>
+          <div class="montant-info" id="bareme-info"></div>
         </div>
+        <div class="montant-value" id="montant">—</div>
+      </div>
+      <p class="note" id="note-periode" hidden>Montant indicatif calculé sur les kilomètres de la période : le barème fiscal s'applique au kilométrage annuel total, le montant définitif sera établi sur l'année.</p>
     </div>
-</div>
 
-<script>'use strict';
+    <div class="actions no-print">
+      <button type="button" class="btn btn-primary" id="btn-calculer">Calculer mes IK</button>
+      <button type="button" class="btn btn-outline" id="btn-pdf" hidden>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+        Télécharger le PDF
+      </button>
+    </div>
+  </section>
+
+  <footer class="site-foot no-print">
+    <p>Distances calculées par itinéraire routier (OpenStreetMap), arrondies au dixième de kilomètre.</p>
+    <p class="credit">Made by Pierre Perrez</p>
+  </footer>
+</main>
+
+<script>
+'use strict';
 
 // ── Barèmes ───────────────────────────────────────────────────────────────────
 // Source : DGFiP / service-public.fr. Barème 2026 (revenus 2025) officiel :
 // non revalorisé, identique à 2024 et 2025 (dernière hausse en 2023, +5,4 %).
 const BAREMES = {
     2024: {
-        3: { t1: 0.529, a2: 0.316, b2: 1065,  t3: 0.370 },
-        4: { t1: 0.606, a2: 0.340, b2: 1330,  t3: 0.407 },
-        5: { t1: 0.636, a2: 0.357, b2: 1395,  t3: 0.427 },
-        6: { t1: 0.665, a2: 0.374, b2: 1457,  t3: 0.447 },
-        7: { t1: 0.697, a2: 0.394, b2: 1515,  t3: 0.470 },
+        3: { t1: 0.529, a2: 0.316, b2: 1065, t3: 0.370 },
+        4: { t1: 0.606, a2: 0.340, b2: 1330, t3: 0.407 },
+        5: { t1: 0.636, a2: 0.357, b2: 1395, t3: 0.427 },
+        6: { t1: 0.665, a2: 0.374, b2: 1457, t3: 0.447 },
+        7: { t1: 0.697, a2: 0.394, b2: 1515, t3: 0.470 },
     },
     2025: {
-        3: { t1: 0.529, a2: 0.316, b2: 1065,  t3: 0.370 },
-        4: { t1: 0.606, a2: 0.340, b2: 1330,  t3: 0.407 },
-        5: { t1: 0.636, a2: 0.357, b2: 1395,  t3: 0.427 },
-        6: { t1: 0.665, a2: 0.374, b2: 1457,  t3: 0.447 },
-        7: { t1: 0.697, a2: 0.394, b2: 1515,  t3: 0.470 },
+        3: { t1: 0.529, a2: 0.316, b2: 1065, t3: 0.370 },
+        4: { t1: 0.606, a2: 0.340, b2: 1330, t3: 0.407 },
+        5: { t1: 0.636, a2: 0.357, b2: 1395, t3: 0.427 },
+        6: { t1: 0.665, a2: 0.374, b2: 1457, t3: 0.447 },
+        7: { t1: 0.697, a2: 0.394, b2: 1515, t3: 0.470 },
     },
     2026: {
-        3: { t1: 0.529, a2: 0.316, b2: 1065,  t3: 0.370 },
-        4: { t1: 0.606, a2: 0.340, b2: 1330,  t3: 0.407 },
-        5: { t1: 0.636, a2: 0.357, b2: 1395,  t3: 0.427 },
-        6: { t1: 0.665, a2: 0.374, b2: 1457,  t3: 0.447 },
-        7: { t1: 0.697, a2: 0.394, b2: 1515,  t3: 0.470 },
+        3: { t1: 0.529, a2: 0.316, b2: 1065, t3: 0.370 },
+        4: { t1: 0.606, a2: 0.340, b2: 1330, t3: 0.407 },
+        5: { t1: 0.636, a2: 0.357, b2: 1395, t3: 0.427 },
+        6: { t1: 0.665, a2: 0.374, b2: 1457, t3: 0.447 },
+        7: { t1: 0.697, a2: 0.394, b2: 1515, t3: 0.470 },
     },
 };
 
 function appliquerBareme(d, cv, annee) {
     const b = (BAREMES[annee] ?? BAREMES[2026])[cv];
-    if (d <= 5000)  return { montant: d * b.t1,        tranche: `≤ 5 000 km (${b.t1.toFixed(3)} €/km)` };
-    if (d <= 20000) return { montant: d * b.a2 + b.b2, tranche: `5 001–20 000 km (formule linéaire)` };
-    return                 { montant: d * b.t3,         tranche: `> 20 000 km (${b.t3.toFixed(3)} €/km)` };
+    if (d <= 5000)  return { montant: d * b.t1,        tranche: `jusqu'à 5 000 km : d × ${fmtNombre(b.t1, 3)} €` };
+    if (d <= 20000) return { montant: d * b.a2 + b.b2, tranche: `de 5 001 à 20 000 km : (d × ${fmtNombre(b.a2, 3)}) + ${fmtNombre(b.b2, 0)} €` };
+    return                 { montant: d * b.t3,         tranche: `au-delà de 20 000 km : d × ${fmtNombre(b.t3, 3)} €` };
 }
 
-// ── State ─────────────────────────────────────────────────────────────────────
+const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet',
+              'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+
+const ICONES = {
+    copie: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+    suppr: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>',
+    route: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>',
+};
+
+// ── État ──────────────────────────────────────────────────────────────────────
+// Un trajet = { id, distance (km aller simple), distanceOK, cle (adresses au moment du calcul), modeDate }
 let trajets = [];
 let nextId = 1;
+let releveAffiche = false;
 
-// ── Init ──────────────────────────────────────────────────────────────────────
-ajouterTrajet();
+const $ = (id) => document.getElementById(id);
+const conteneur = $('trajets');
 
-// ── Trajet management ─────────────────────────────────────────────────────────
-function ajouterTrajet() {
-    const id = nextId++;
-    trajets.push({ id, distanceUnitaire: 0, distanceCalculee: false });
+// ── Formats ───────────────────────────────────────────────────────────────────
+function fmtNombre(n, dec) {
+    const [ent, frac] = Math.abs(n).toFixed(dec).split('.');
+    return (n < 0 ? '-' : '') + ent.replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + (frac ? ',' + frac : '');
+}
+const fmtKm   = (n) => fmtNombre(n, 1);
+const fmtEuro = (n) => fmtNombre(n, 2) + ' €';
+const arrondi1 = (n) => Math.round(n * 10) / 10;
 
-    const el = document.createElement('div');
-    el.className = 'card no-print';
-    el.id = `card-${id}`;
-    el.innerHTML = buildTrajetHTML(id);
-    document.getElementById('trajets-container').appendChild(el);
-
-    rafraichirBoutonsSuppr();
+function fmtDate(iso) {
+    const [a, m, j] = iso.split('-');
+    return `${j}/${m}/${a}`;
 }
 
-function supprimerTrajet(id) {
-    trajets = trajets.filter(t => t.id !== id);
-    document.getElementById(`card-${id}`).remove();
-    rafraichirBoutonsSuppr();
+function fmtDateLigne(l) {
+    if (l.dd && l.df && l.dd !== l.df) {
+        const debut = l.dd.slice(0, 4) === l.df.slice(0, 4) ? fmtDate(l.dd).slice(0, 5) : fmtDate(l.dd);
+        return `${debut} au ${fmtDate(l.df)}`;
+    }
+    const d = l.dd || l.df;
+    return d ? fmtDate(d) : '—';
 }
 
-function rafraichirBoutonsSuppr() {
-    document.querySelectorAll('.btn-suppr').forEach(b => {
-        b.style.display = trajets.length <= 1 ? 'none' : '';
-    });
+function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function buildTrajetHTML(id) {
+function sansAccents(s) {
+    return s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+function slug(s) {
+    return sansAccents(s).replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+}
+
+const capitaliser = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+const normaliser  = (s) => s.trim().toLowerCase().replace(/\s+/g, ' ');
+const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+const comportementScroll = () => (matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
+
+// ── Cartes trajet ─────────────────────────────────────────────────────────────
+function htmlTrajet(id) {
     return `
-        <div class="card-header">
-            <input class="card-header-name" type="text" id="nom-${id}" value="Trajet ${id}" placeholder="Nom du trajet">
-            <span class="badge badge-pending" id="badge-${id}">Non calculé</span>
-            <button class="btn btn-danger-ghost btn-suppr" onclick="supprimerTrajet(${id})">✕ Retirer</button>
-        </div>
-        <div class="card-body">
-            <label>Adresse de départ</label>
-            <input type="text" id="dep-${id}" placeholder="Ex: 10 rue de la Paix, Paris">
-
-            <label>Adresse d'arrivée</label>
-            <input type="text" id="arr-${id}" placeholder="Ex: 5 avenue Victor Hugo, Lyon">
-
-            <div class="check-row">
-                <input type="checkbox" id="ar-${id}" checked>
-                <label for="ar-${id}">Aller-Retour</label>
+        <header class="trajet-head">
+            <span class="trajet-num">Trajet</span>
+            <span class="badge badge-pending" id="badge-${id}">Distance à calculer</span>
+            <div class="trajet-actions">
+                <button type="button" class="btn-ghost" data-action="dupliquer" data-id="${id}"
+                        aria-label="Dupliquer ce trajet" title="Dupliquer ce trajet">
+                    ${ICONES.copie}<span class="btn-text">Dupliquer</span>
+                </button>
+                <button type="button" class="btn-ghost danger" data-action="supprimer" data-id="${id}"
+                        aria-label="Supprimer ce trajet" title="Supprimer ce trajet">
+                    ${ICONES.suppr}<span class="btn-text">Supprimer</span>
+                </button>
             </div>
-
-            <button class="btn btn-primary btn-block" onclick="calculerDistanceTrajet(${id})">
-                Calculer la distance du trajet
-            </button>
-            <div class="loading-msg" id="load-${id}">Recherche de l'itinéraire…</div>
-            <div class="dist-ok" id="distok-${id}">
-                Distance : <strong id="distval-${id}">–</strong> km (trajet simple)
+        </header>
+        <div class="trajet-body">
+            <div class="field">
+                <label for="nom-${id}">Nom du trajet <span class="opt">(facultatif)</span></label>
+                <input type="text" id="nom-${id}" placeholder="Ex : Domicile – Client Martin" autocomplete="off">
             </div>
-
-            <div class="grid-2" style="margin-top:.5rem">
-                <div>
-                    <label>Date de début</label>
-                    <input type="date" id="dd-${id}" onchange="recalcJours(${id})">
+            <div class="grid grid-2">
+                <div class="field">
+                    <label for="dep-${id}">Lieu de départ</label>
+                    <input type="text" id="dep-${id}" data-adresse="${id}" placeholder="Ex : 10 rue de la Paix, Paris" autocomplete="off">
                 </div>
-                <div>
-                    <label>Date de fin</label>
-                    <input type="date" id="df-${id}" onchange="recalcJours(${id})">
+                <div class="field">
+                    <label for="arr-${id}">Lieu d'arrivée</label>
+                    <input type="text" id="arr-${id}" data-adresse="${id}" placeholder="Ex : 5 avenue Victor Hugo, Lyon" autocomplete="off">
                 </div>
             </div>
-
-            <div class="check-row">
-                <input type="checkbox" id="sw-${id}" checked onchange="recalcJours(${id})">
-                <label for="sw-${id}">Exclure les week-ends (lun–ven)</label>
+            <div class="route-row">
+                <label class="check"><input type="checkbox" id="ar-${id}" data-ar="${id}" checked> Aller-retour</label>
+                <button type="button" class="btn btn-navy btn-sm" data-action="distance" data-id="${id}" id="btn-dist-${id}">
+                    ${ICONES.route} Calculer la distance
+                </button>
             </div>
-
-            <label>Nombre de trajets (modifiable manuellement)</label>
-            <input type="number" id="nb-${id}" value="0" min="0">
+            <p class="dist-line" id="dist-${id}" aria-live="polite" hidden></p>
+            <div class="grid grid-dates">
+                <div class="field">
+                    <label for="dd-${id}">Date <span class="opt">(ou début de période)</span></label>
+                    <input type="date" id="dd-${id}" data-dates="${id}">
+                </div>
+                <div class="field">
+                    <label for="df-${id}">Date de fin <span class="opt">(si période)</span></label>
+                    <input type="date" id="df-${id}" data-dates="${id}">
+                </div>
+                <div class="field field-nb">
+                    <label for="nb-${id}">Nombre de fois</label>
+                    <input type="number" id="nb-${id}" value="1" min="0" step="1" inputmode="numeric">
+                </div>
+            </div>
+            <p class="field-err" id="dateerr-${id}" hidden>La date de fin est antérieure à la date de début.</p>
+            <label class="check"><input type="checkbox" id="sw-${id}" data-dates="${id}" checked> Exclure les week-ends sur une période</label>
         </div>`;
 }
 
-// ── Weekday counter ───────────────────────────────────────────────────────────
-function recalcJours(id) {
-    const dd = document.getElementById(`dd-${id}`).value;
-    const df = document.getElementById(`df-${id}`).value;
-    const sw = document.getElementById(`sw-${id}`).checked;
-    if (!dd || !df) return;
+const trouver = (id) => trajets.find((t) => t.id === id);
 
-    const start = new Date(dd), end = new Date(df);
-    if (start > end) { document.getElementById(`nb-${id}`).value = 0; return; }
-
-    let count = 0, cur = new Date(start);
-    while (cur <= end) {
-        const d = cur.getDay();
-        if (!sw || (d !== 0 && d !== 6)) count++;
-        cur.setDate(cur.getDate() + 1);
+function creerTrajet(apres = null) {
+    const id = nextId++;
+    const t = { id, distance: 0, distanceOK: false, cle: '', modeDate: 'aucune' };
+    const el = document.createElement('article');
+    el.className = 'card trajet';
+    el.id = `card-${id}`;
+    el.dataset.id = id;
+    el.innerHTML = htmlTrajet(id);
+    if (apres) {
+        apres.after(el);
+        const idx = trajets.findIndex((x) => x.id === Number(apres.dataset.id));
+        trajets.splice(idx + 1, 0, t);
+    } else {
+        conteneur.appendChild(el);
+        trajets.push(t);
     }
-    document.getElementById(`nb-${id}`).value = count;
+    renumeroter();
+    return { t, el };
 }
 
-// ── Geocoding + routing ───────────────────────────────────────────────────────
-async function geocode(address) {
-    const r = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(address)}`
+function renumeroter() {
+    const cartes = conteneur.querySelectorAll('.trajet');
+    cartes.forEach((c, i) => { c.querySelector('.trajet-num').textContent = `Trajet ${i + 1}`; });
+    conteneur.querySelectorAll('[data-action="supprimer"]').forEach((b) => { b.hidden = cartes.length <= 1; });
+}
+
+function revelerCarte(el, champ) {
+    el.classList.remove('flash');
+    void el.offsetWidth; // relance l'animation
+    el.classList.add('flash');
+    el.scrollIntoView({ behavior: comportementScroll(), block: 'center' });
+    // Pas de focus automatique sur mobile (ouvrirait le clavier ou le calendrier)
+    if (champ && matchMedia('(pointer: fine)').matches) champ.focus({ preventScroll: true });
+}
+
+function lireTrajet(t) {
+    const v = (champ) => $(`${champ}-${t.id}`);
+    return {
+        nom: v('nom').value.trim(),
+        dep: v('dep').value.trim(),
+        arr: v('arr').value.trim(),
+        ar:  v('ar').checked,
+        dd:  v('dd').value,
+        df:  v('df').value,
+        sw:  v('sw').checked,
+        nb:  parseInt(v('nb').value, 10) || 0,
+    };
+}
+
+const cleTrajet = (t) => {
+    const d = lireTrajet(t);
+    return `${normaliser(d.dep)}|${normaliser(d.arr)}`;
+};
+
+function ajouterTrajet() {
+    const { t, el } = creerTrajet();
+    revelerCarte(el, $(`dep-${t.id}`));
+    planifierRafraichissement();
+}
+
+function dupliquerTrajet(id) {
+    const src = trouver(id);
+    if (!src) return;
+    const { t, el } = creerTrajet($(`card-${id}`));
+    ['nom', 'dep', 'arr', 'dd', 'df', 'nb'].forEach((c) => { $(`${c}-${t.id}`).value = $(`${c}-${id}`).value; });
+    ['ar', 'sw'].forEach((c) => { $(`${c}-${t.id}`).checked = $(`${c}-${id}`).checked; });
+    // La distance déjà calculée est reprise : pas besoin de la recalculer
+    Object.assign(t, { distance: src.distance, distanceOK: src.distanceOK, cle: src.cle, modeDate: src.modeDate });
+    majAffichageDistance(t);
+    revelerCarte(el, $(`dd-${t.id}`));
+    planifierRafraichissement();
+}
+
+function supprimerTrajet(id) {
+    if (trajets.length <= 1) return;
+    trajets = trajets.filter((t) => t.id !== id);
+    $(`card-${id}`).remove();
+    renumeroter();
+    planifierRafraichissement();
+}
+
+// ── Dates → nombre de fois ────────────────────────────────────────────────────
+function compterJours(dd, df, sansWeekEnds) {
+    const versUTC = (iso) => { const [a, m, j] = iso.split('-').map(Number); return Date.UTC(a, m - 1, j); };
+    let n = 0;
+    for (let cur = versUTC(dd), fin = versUTC(df); cur <= fin; cur += 86400000) {
+        const jour = new Date(cur).getUTCDay();
+        if (!sansWeekEnds || (jour !== 0 && jour !== 6)) n++;
+    }
+    return n;
+}
+
+function majNombreDeFois(id) {
+    const t = trouver(id);
+    const d = lireTrajet(t);
+    const nb = $(`nb-${id}`);
+    const mode = (d.dd && d.df && d.dd !== d.df) ? 'periode' : (d.dd || d.df) ? 'jour' : 'aucune';
+    const inverse = mode === 'periode' && d.df < d.dd;
+    $(`dateerr-${id}`).hidden = !inverse;
+    if (mode === 'periode') {
+        nb.value = inverse ? 0 : compterJours(d.dd, d.df, d.sw);
+    } else if (mode === 'jour' && (t.modeDate === 'periode' || !(parseInt(nb.value, 10) > 0))) {
+        nb.value = 1;
+    }
+    t.modeDate = mode;
+}
+
+// ── Distance (Nominatim + OSRM) ───────────────────────────────────────────────
+class ErreurSaisie extends Error {}
+
+const cacheGeo = new Map();
+let fileGeo = Promise.resolve();
+let dernierAppelGeo = 0;
+
+// Nominatim impose au plus 1 requête par seconde : les appels sont mis en file.
+function geocode(adresse) {
+    const cle = normaliser(adresse);
+    if (cacheGeo.has(cle)) return Promise.resolve(cacheGeo.get(cle));
+    const tache = fileGeo.then(async () => {
+        if (cacheGeo.has(cle)) return cacheGeo.get(cle);
+        const attente = dernierAppelGeo + 1100 - Date.now();
+        if (attente > 0) await pause(attente);
+        dernierAppelGeo = Date.now();
+        const rep = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=fr&q=${encodeURIComponent(adresse)}`
+        );
+        if (!rep.ok) throw new ErreurSaisie('Service de localisation indisponible, réessayez dans un instant.');
+        const data = await rep.json();
+        if (!data.length) throw new ErreurSaisie(`Lieu introuvable : « ${adresse} ». Précisez l'adresse (rue, code postal, ville).`);
+        const pos = { lat: data[0].lat, lon: data[0].lon };
+        cacheGeo.set(cle, pos);
+        return pos;
+    });
+    fileGeo = tache.catch(() => {});
+    return tache;
+}
+
+async function itineraire(c1, c2) {
+    const rep = await fetch(
+        `https://router.project-osrm.org/route/v1/driving/${c1.lon},${c1.lat};${c2.lon},${c2.lat}?overview=false`
     );
-    const data = await r.json();
-    if (!data.length) throw new Error(`Adresse introuvable : « ${address} »`);
-    return { lat: data[0].lat, lon: data[0].lon };
+    const data = await rep.json().catch(() => null);
+    if (!data || data.code !== 'Ok' || !data.routes?.length) {
+        throw new ErreurSaisie(data && data.code === 'NoRoute'
+            ? 'Aucun itinéraire routier trouvé entre ces deux lieux.'
+            : "Service d'itinéraire indisponible, réessayez dans un instant.");
+    }
+    return arrondi1(data.routes[0].distance / 1000);
+}
+
+function majAffichageDistance(t) {
+    const badge = $(`badge-${t.id}`);
+    const ligne = $(`dist-${t.id}`);
+    if (t.distanceOK) {
+        const ar = $(`ar-${t.id}`).checked;
+        badge.className = 'badge badge-ok';
+        badge.textContent = `${fmtKm(t.distance)} km`;
+        ligne.className = 'dist-line ok';
+        ligne.innerHTML = `Distance : <strong>${fmtKm(t.distance)} km</strong> (aller simple)`
+            + (ar ? ` · ${fmtKm(arrondi1(t.distance * 2))} km en aller-retour` : '');
+        ligne.hidden = false;
+    } else {
+        badge.className = 'badge badge-pending';
+        badge.textContent = 'Distance à calculer';
+        ligne.hidden = true;
+    }
+}
+
+function afficherErreurDistance(t, message) {
+    t.distanceOK = false;
+    $(`badge-${t.id}`).className = 'badge badge-error';
+    $(`badge-${t.id}`).textContent = 'Erreur';
+    const ligne = $(`dist-${t.id}`);
+    ligne.className = 'dist-line err';
+    ligne.textContent = message;
+    ligne.hidden = false;
 }
 
 async function calculerDistanceTrajet(id) {
-    const dep = document.getElementById(`dep-${id}`).value.trim();
-    const arr = document.getElementById(`arr-${id}`).value.trim();
-    if (!dep || !arr) { alert('Saisissez les deux adresses.'); return; }
-
-    const load  = document.getElementById(`load-${id}`);
-    const ok    = document.getElementById(`distok-${id}`);
-    const badge = document.getElementById(`badge-${id}`);
-    const t     = trajets.find(t => t.id === id);
-
-    load.style.display = 'block';
-    ok.style.display   = 'none';
-    t.distanceCalculee = false;
-
-    try {
-        const c1 = await geocode(dep);
-        await new Promise(r => setTimeout(r, 500)); // respect Nominatim rate limit
-        const c2 = await geocode(arr);
-
-        const res  = await fetch(
-            `https://router.project-osrm.org/route/v1/driving/${c1.lon},${c1.lat};${c2.lon},${c2.lat}?overview=false`
-        );
-        const data = await res.json();
-        if (!data.routes?.length) throw new Error('Aucun itinéraire routier trouvé.');
-
-        t.distanceUnitaire = data.routes[0].distance / 1000;
-        t.distanceCalculee = true;
-
-        document.getElementById(`distval-${id}`).textContent = t.distanceUnitaire.toFixed(1);
-        ok.style.display  = 'block';
-        badge.textContent = t.distanceUnitaire.toFixed(1) + ' km/trajet';
-        badge.className   = 'badge badge-ok';
-    } catch (e) {
-        alert('Erreur : ' + e.message);
-        badge.textContent = 'Erreur';
-        badge.className   = 'badge badge-error';
-    } finally {
-        load.style.display = 'none';
-    }
-}
-
-// ── IK calculation ────────────────────────────────────────────────────────────
-function calculerIK() {
-    const cv    = parseInt(document.getElementById('cv').value);
-    const annee = parseInt(document.getElementById('annee').value);
-
-    // Sync mutable fields from DOM
-    trajets.forEach(t => {
-        t.nom        = document.getElementById(`nom-${t.id}`).value || `Trajet ${t.id}`;
-        t.allerRetour = document.getElementById(`ar-${t.id}`).checked;
-        t.nbTrajets  = parseInt(document.getElementById(`nb-${t.id}`).value) || 0;
-    });
-
-    const actifs  = trajets.filter(t => t.nbTrajets > 0);
-    if (!actifs.length) { alert('Aucun trajet avec un nombre de trajets > 0.'); return; }
-
-    const nonCalc = actifs.filter(t => !t.distanceCalculee);
-    if (nonCalc.length) {
-        alert(`Distance non calculée pour : ${nonCalc.map(t => t.nom).join(', ')}`);
+    const t = trouver(id);
+    const d = lireTrajet(t);
+    if (!d.dep || !d.arr) {
+        afficherErreurDistance(t, "Renseignez le lieu de départ et le lieu d'arrivée.");
         return;
     }
+    const cle = cleTrajet(t);
+    const bouton = $(`btn-dist-${id}`);
+    const ligne = $(`dist-${id}`);
+    bouton.disabled = true;
+    ligne.className = 'dist-line busy';
+    ligne.textContent = "Recherche de l'itinéraire…";
+    ligne.hidden = false;
+    try {
+        const c1 = await geocode(d.dep);
+        const c2 = await geocode(d.arr);
+        const km = await itineraire(c1, c2);
+        if (!trouver(id)) return;                                   // trajet supprimé entre-temps
+        if (cleTrajet(t) !== cle) { majAffichageDistance(t); return; } // adresses modifiées entre-temps
+        Object.assign(t, { distance: km, distanceOK: true, cle });
+        majAffichageDistance(t);
+        planifierRafraichissement();
+    } catch (e) {
+        if (!trouver(id)) return;
+        afficherErreurDistance(t, e instanceof ErreurSaisie ? e.message
+            : "Impossible de joindre le service de calcul d'itinéraire. Vérifiez la connexion et réessayez.");
+    } finally {
+        if ($(`btn-dist-${id}`)) $(`btn-dist-${id}`).disabled = false;
+    }
+}
 
-    let totalKm = 0;
-    const rows = actifs.map(t => {
-        const distJour = t.distanceUnitaire * (t.allerRetour ? 2 : 1);
-        const kmTrajet = distJour * t.nbTrajets;
-        totalKm += kmTrajet;
-        return { nom: t.nom, distJour, nbTrajets: t.nbTrajets, kmTrajet };
+// Si une adresse change après le calcul, la distance n'est plus valable
+// (elle le redevient si l'adresse d'origine est rétablie).
+function verifierAdresses(id) {
+    const t = trouver(id);
+    const ok = t.distance > 0 && cleTrajet(t) === t.cle;
+    if (ok !== t.distanceOK || $(`badge-${id}`).classList.contains('badge-error')) {
+        t.distanceOK = ok;
+        majAffichageDistance(t);
+    }
+}
+
+// ── Période (mois reconnu à partir des dates) ─────────────────────────────────
+function detecterPeriode(lignes) {
+    const dates = lignes.flatMap((l) => [l.dd, l.df]).filter(Boolean).sort();
+    if (!dates.length) {
+        return { libelleTotal: 'Total annuel', titre: '', fichier: '', partiel: false };
+    }
+    const [a1, m1] = dates[0].split('-').map(Number);
+    const [a2, m2] = dates[dates.length - 1].split('-').map(Number);
+    const mois1 = MOIS[m1 - 1];
+    const mois2 = MOIS[m2 - 1];
+    if (a1 === a2 && m1 === m2) {
+        return { libelleTotal: `Total ${mois1} ${a1}`, titre: `${capitaliser(mois1)} ${a1}`,
+                 fichier: `${slug(mois1)}-${a1}`, partiel: true };
+    }
+    if (a1 === a2 && m1 === 1 && m2 === 12) {
+        return { libelleTotal: `Total annuel ${a1}`, titre: `Année ${a1}`, fichier: `annee-${a1}`, partiel: false };
+    }
+    const debut = a1 === a2 ? mois1 : `${mois1} ${a1}`;
+    return { libelleTotal: `Total ${debut} – ${mois2} ${a2}`, titre: `${capitaliser(debut)} – ${mois2} ${a2}`,
+             fichier: `${slug(mois1)}-${a1}_${slug(mois2)}-${a2}`, partiel: true };
+}
+
+// ── Relevé ────────────────────────────────────────────────────────────────────
+function construireReleve() {
+    const cvSel = $('cv');
+    const cv = parseInt(cvSel.value, 10);
+    const annee = parseInt($('annee').value, 10);
+    const lignes = [];
+    const erreurs = [];
+
+    conteneur.querySelectorAll('.trajet').forEach((el, i) => {
+        const t = trouver(Number(el.dataset.id));
+        const d = lireTrajet(t);
+        if (!d.nom && !d.dep && !d.arr) return; // carte vide : ignorée
+        const libelle = d.nom || `Trajet ${i + 1}`;
+        if (!d.dep || !d.arr) { erreurs.push(`${libelle} : lieu de départ ou d'arrivée manquant.`); return; }
+        if (!t.distanceOK) { erreurs.push(`${libelle} : distance non calculée (bouton « Calculer la distance »).`); return; }
+        if (d.dd && d.df && d.df < d.dd) { erreurs.push(`${libelle} : la date de fin est antérieure à la date de début.`); return; }
+        if (d.nb <= 0) { erreurs.push(`${libelle} : nombre de fois à renseigner.`); return; }
+        const parFois = arrondi1(t.distance * (d.ar ? 2 : 1));
+        lignes.push({
+            ordre: i, libelle, dep: d.dep, arr: d.arr, ar: d.ar, dd: d.dd, df: d.df, nb: d.nb,
+            distance: t.distance, km: arrondi1(parFois * d.nb),
+        });
+    });
+    if (!lignes.length && !erreurs.length) {
+        erreurs.push('Renseignez au moins un trajet (lieux de départ et d’arrivée, puis « Calculer la distance »).');
+    }
+
+    // Ordre chronologique (les trajets sans date à la fin, dans l'ordre de saisie)
+    const cleTri = (l) => l.dd || l.df || '9999-99-99';
+    lignes.sort((a, b) => cleTri(a).localeCompare(cleTri(b)) || a.ordre - b.ordre);
+
+    const totalKm = arrondi1(lignes.reduce((s, l) => s + l.km, 0));
+    const { montant, tranche } = appliquerBareme(totalKm, cv, annee);
+    return {
+        lignes, erreurs, totalKm, tranche, cv, annee,
+        montant: Math.round(montant * 100) / 100,
+        cvLabel: cvSel.selectedOptions[0].text,
+        nom: $('nom-client').value.trim(),
+        periode: detecterPeriode(lignes),
+    };
+}
+
+const sousLigne = (l) => `${l.ar ? 'Aller-retour · 2 × ' : 'Aller simple · '}${fmtKm(l.distance)} km`;
+
+function afficherErreurs(liste) {
+    const box = $('erreurs');
+    box.hidden = !liste.length;
+    box.innerHTML = liste.length
+        ? `<strong>Le relevé ne peut pas encore être calculé :</strong><ul>${liste.map((e) => `<li>${esc(e)}</li>`).join('')}</ul>`
+        : '';
+}
+
+function rendreReleve(r) {
+    $('recap-corps').innerHTML = r.lignes.map((l) => `
+        <tr>
+            <td><strong>${esc(l.libelle)}</strong><span class="sub">${esc(sousLigne(l))}</span></td>
+            <td>${esc(fmtDateLigne(l))}</td>
+            <td>${esc(l.dep)}</td>
+            <td>${esc(l.arr)}</td>
+            <td class="num">${l.nb}</td>
+            <td class="num">${fmtKm(l.km)} km</td>
+        </tr>`).join('');
+    $('total-libelle').textContent = r.periode.libelleTotal;
+    $('total-km').textContent = `${fmtKm(r.totalKm)} km`;
+    $('montant').textContent = fmtEuro(r.montant);
+    $('montant-total').textContent = `${r.periode.libelleTotal} : ${fmtKm(r.totalKm)} km`;
+    $('bareme-info').textContent = `Barème ${r.annee} · ${r.cvLabel} · ${r.tranche}`;
+    $('note-periode').hidden = !r.periode.partiel;
+
+    const chip = $('periode-chip');
+    chip.textContent = r.periode.titre || 'Période non datée';
+    chip.hidden = false;
+
+    const meta = [r.nom, `Véhicule : ${r.cvLabel}`, `Barème ${r.annee}`].filter(Boolean).join(' · ');
+    $('print-entete').innerHTML = `<h1>Relevé de frais kilométriques${r.periode.titre ? ' — ' + esc(r.periode.titre) : ''}</h1><p>${esc(meta)}</p>`;
+
+    $('recap-vide').hidden = true;
+    $('obsolete').hidden = true;
+    $('recap').hidden = false;
+    $('btn-pdf').hidden = false;
+    releveAffiche = true;
+}
+
+function calculerIK() {
+    const r = construireReleve();
+    afficherErreurs(r.erreurs);
+    if (r.erreurs.length) {
+        $('recap').hidden = true;
+        $('recap-vide').hidden = true;
+        $('periode-chip').hidden = true;
+        $('btn-pdf').hidden = true;
+        releveAffiche = false;
+        $('erreurs').scrollIntoView({ behavior: comportementScroll(), block: 'nearest' });
+        return null;
+    }
+    rendreReleve(r);
+    return r;
+}
+
+// Une fois le récapitulatif affiché, il suit les modifications de saisie.
+let minuterieMaj = null;
+function planifierRafraichissement() {
+    if (!releveAffiche) return;
+    clearTimeout(minuterieMaj);
+    minuterieMaj = setTimeout(() => {
+        const r = construireReleve();
+        if (r.erreurs.length) {
+            $('obsolete').hidden = false;
+        } else {
+            afficherErreurs([]);
+            rendreReleve(r);
+        }
+    }, 250);
+}
+
+// ── PDF ───────────────────────────────────────────────────────────────────────
+// Les polices standard du PDF ne couvrent que l'alphabet latin (Windows-1252).
+function pdfSafe(s) {
+    return String(s)
+        .replace(/[   ]/g, ' ')
+        .replace(/→/g, '->').replace(/←/g, '<-').replace(/≤/g, '<=').replace(/≥/g, '>=')
+        .replace(/[^\n -~ -ÿ€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ]/g, '?');
+}
+
+function nomFichier(r) {
+    const morceaux = ['Frais-kilometriques'];
+    if (r.nom && slug(r.nom)) morceaux.push(slug(r.nom));
+    morceaux.push(r.periode.fichier || new Date().toISOString().slice(0, 10));
+    return morceaux.join('_') + '.pdf';
+}
+
+function genererPDF(r) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+    const W = doc.internal.pageSize.getWidth();
+    const H = doc.internal.pageSize.getHeight();
+    const M = 14;
+    const C = {
+        navy: [14, 15, 48], teal: [26, 171, 142], tealInk: [15, 122, 101], muted: [91, 96, 117],
+        teal50: [234, 247, 243], border: [225, 229, 234], zebra: [248, 250, 251], clair: [201, 203, 216],
+    };
+    const titre = 'Relevé de frais kilométriques';
+
+    // Titre et informations (page 1)
+    let y = 24;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(...C.navy);
+    doc.text(titre, M, y);
+    if (r.periode.titre) {
+        doc.setTextColor(...C.tealInk);
+        doc.text(pdfSafe(r.periode.titre), W - M, y, { align: 'right' });
+    }
+    y += 6.5;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...C.muted);
+    const meta = [r.nom && `Nom : ${r.nom}`, `Véhicule : ${r.cvLabel}`, `Barème kilométrique ${r.annee}`,
+                  `Édité le ${new Date().toLocaleDateString('fr-FR')}`].filter(Boolean).join('   ·   ');
+    const metaLignes = doc.splitTextToSize(pdfSafe(meta), W - 2 * M);
+    doc.text(metaLignes, M, y);
+    y += metaLignes.length * 4.2 + 4;
+
+    // Tableau : Trajet / Date / Lieu de départ / Lieu d'arrivée / Nombre de fois / Km total
+    const largeurs = [40, 28, 40, 40, 15, 19];
+    const pad = { top: 2.4, right: 2, bottom: 2.4, left: 2 };
+    const tailleSous = 7;
+    doc.setFontSize(tailleSous);
+    const corps = r.lignes.map((l) => {
+        const sous = doc.splitTextToSize(pdfSafe(sousLigne(l)), largeurs[0] - pad.left - pad.right);
+        return [
+            // Les lignes vides réservent la place du détail, dessiné en petit sous le nom (didDrawCell)
+            { content: pdfSafe(l.libelle) + '\n'.repeat(sous.length), sousLignes: sous },
+            pdfSafe(fmtDateLigne(l)),
+            pdfSafe(l.dep),
+            pdfSafe(l.arr),
+            String(l.nb),
+            fmtKm(l.km),
+        ];
     });
 
-    const { montant, tranche } = appliquerBareme(totalKm, cv, annee);
+    doc.autoTable({
+        startY: y,
+        margin: { top: 18, right: M, bottom: 18, left: M },
+        head: [['Trajet', 'Date', 'Lieu de départ', "Lieu d'arrivée", 'Nombre de fois', 'Km total']],
+        body: corps,
+        foot: [[
+            { content: pdfSafe(r.periode.libelleTotal), colSpan: 5, styles: { halign: 'right' } },
+            { content: `${fmtKm(r.totalKm)} km`, styles: { halign: 'right' } },
+        ]],
+        showHead: 'everyPage',
+        showFoot: 'lastPage',
+        rowPageBreak: 'avoid',
+        theme: 'plain',
+        styles: {
+            font: 'helvetica', fontSize: 8.5, textColor: C.navy, cellPadding: pad, valign: 'top',
+            overflow: 'linebreak', lineColor: C.border, lineWidth: { bottom: 0.2 },
+        },
+        headStyles: { fillColor: C.navy, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7.5, valign: 'middle', lineWidth: 0 },
+        footStyles: { fillColor: C.teal50, textColor: C.navy, fontStyle: 'bold', fontSize: 9.5, valign: 'middle', lineColor: C.teal, lineWidth: { top: 0.6 } },
+        alternateRowStyles: { fillColor: C.zebra },
+        columnStyles: {
+            0: { cellWidth: largeurs[0], fontStyle: 'bold' },
+            1: { cellWidth: largeurs[1] },
+            2: { cellWidth: largeurs[2] },
+            3: { cellWidth: largeurs[3] },
+            4: { cellWidth: largeurs[4], halign: 'right' },
+            5: { cellWidth: largeurs[5], halign: 'right', fontStyle: 'bold' },
+        },
+        didParseCell(data) {
+            if (data.section === 'head' && data.column.index >= 4) data.cell.styles.halign = 'right';
+        },
+        didDrawCell(data) {
+            const brut = data.cell.raw;
+            if (data.section !== 'body' || data.column.index !== 0 || !brut || !brut.sousLignes) return;
+            const taille = data.cell.styles.fontSize / doc.internal.scaleFactor;
+            const interligne = taille * doc.getLineHeightFactor();
+            const lignesNom = data.cell.text.length - brut.sousLignes.length;
+            let yy = data.cell.y + data.cell.padding('top') + taille * (2 - 1.15) + lignesNom * interligne;
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(tailleSous);
+            doc.setTextColor(...C.muted);
+            brut.sousLignes.forEach((txt) => { doc.text(txt, data.cell.x + data.cell.padding('left'), yy); yy += interligne; });
+        },
+    });
 
-    document.getElementById('summary-tbody').innerHTML = rows.map(r => `
-        <tr>
-            <td>${escHtml(r.nom)}</td>
-            <td>${r.distJour.toFixed(1)} km</td>
-            <td>${r.nbTrajets}</td>
-            <td>${r.kmTrajet.toFixed(1)} km</td>
-        </tr>
-    `).join('');
+    // Bloc montant
+    const note = r.periode.partiel
+        ? "Montant indicatif calculé sur les kilomètres de la période : le barème fiscal s'applique au kilométrage annuel total, le montant définitif sera établi sur l'année."
+        : '';
+    doc.setFontSize(8);
+    const noteLignes = note ? doc.splitTextToSize(pdfSafe(note), W - 2 * M) : [];
+    const hBloc = 25;
+    let yb = doc.lastAutoTable.finalY + 7;
+    if (yb + hBloc + noteLignes.length * 3.6 + 14 > H - 18) { doc.addPage(); yb = 20; }
 
-    const cvLabel = document.getElementById('cv').selectedOptions[0].text;
-    document.getElementById('total-km-cell').textContent = totalKm.toFixed(1) + ' km';
-    document.getElementById('montant-final').textContent =
-        montant.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
-    document.getElementById('bareme-info').textContent =
-        `Barème ${annee} — ${cvLabel} — ${tranche}`;
+    doc.setFillColor(...C.navy);
+    doc.roundedRect(M, yb, W - 2 * M, hBloc, 2, 2, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(...C.clair);
+    doc.text('INDEMNITÉS KILOMÉTRIQUES', M + 6, yb + 8, { charSpace: 0.35 });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(255, 255, 255);
+    doc.text(pdfSafe(`${r.periode.libelleTotal} : ${fmtKm(r.totalKm)} km`), M + 6, yb + 14);
+    doc.text(pdfSafe(`Barème ${r.annee} · ${r.cvLabel} · ${r.tranche}`), M + 6, yb + 19.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(20);
+    doc.setTextColor(...C.teal);
+    doc.text(pdfSafe(fmtEuro(r.montant)), W - M - 6, yb + 15.5, { align: 'right' });
+    yb += hBloc + 6;
 
-    document.getElementById('result-placeholder').style.display = 'none';
-    document.getElementById('result-content').style.display = 'block';
-    document.getElementById('btn-pdf').style.display = '';
+    if (noteLignes.length) {
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(8);
+        doc.setTextColor(...C.muted);
+        doc.text(noteLignes, M, yb);
+        yb += noteLignes.length * 3.6 + 2;
+    }
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(...C.muted);
+    doc.text('Distances calculées par itinéraire routier (OpenStreetMap), arrondies au dixième de kilomètre.', M, yb + 2);
+
+    // Bandeau aux couleurs de la charte et pied de page sur chaque page
+    const total = doc.getNumberOfPages();
+    for (let p = 1; p <= total; p++) {
+        doc.setPage(p);
+        doc.setFillColor(...C.navy);
+        doc.rect(0, 0, W, 9, 'F');
+        doc.setFillColor(...C.teal);
+        doc.rect(0, 9, W, 1.1, 'F');
+
+        doc.setDrawColor(...C.border);
+        doc.setLineWidth(0.2);
+        doc.line(M, H - 12, W - M, H - 12);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(...C.muted);
+        doc.text(pdfSafe(`${titre}${r.periode.titre ? ' · ' + r.periode.titre : ''}`), M, H - 7.5);
+        doc.text(`Made by Pierre Perrez  ·  Page ${p} / ${total}`, W - M, H - 7.5, { align: 'right' });
+    }
+
+    doc.setProperties({ title: pdfSafe(`${titre}${r.periode.titre ? ' – ' + r.periode.titre : ''}`), creator: 'Made by Pierre Perrez' });
+    doc.save(nomFichier(r));
 }
 
-// ── PDF export ────────────────────────────────────────────────────────────────
-function exportPDF() {
-    const cvLabel    = document.getElementById('cv').selectedOptions[0].text;
-    const anneeLabel = document.getElementById('annee').selectedOptions[0].text;
-    const today      = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
-
-    document.getElementById('print-header').innerHTML = `
-        <div style="text-align:center; margin-bottom:1rem; padding-bottom:.75rem; border-bottom:2px solid #2563eb">
-            <h2 style="font-size:1.3rem; color:#2563eb; font-weight:800; margin-bottom:.25rem">
-                Indemnités Kilométriques
-            </h2>
-            <p style="color:#6b7280; font-size:.9rem">
-                Déclaration ${anneeLabel} &nbsp;·&nbsp; ${cvLabel} &nbsp;·&nbsp; Édité le ${today}
-            </p>
-        </div>
-    `;
-    window.print();
+function telechargerPDF() {
+    const r = calculerIK();
+    if (!r) return;
+    const lib = window.jspdf && window.jspdf.jsPDF;
+    if (!lib || typeof lib.API.autoTable !== 'function') {
+        window.print(); // bibliothèque PDF non chargée : impression / « Enregistrer en PDF » du navigateur
+        return;
+    }
+    try {
+        genererPDF(r);
+    } catch (e) {
+        console.error(e);
+        window.print();
+    }
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function escHtml(s) {
-    return String(s)
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+// ── Événements ────────────────────────────────────────────────────────────────
+conteneur.addEventListener('click', (e) => {
+    const bouton = e.target.closest('button[data-action]');
+    if (!bouton) return;
+    const id = Number(bouton.dataset.id);
+    if (bouton.dataset.action === 'dupliquer') dupliquerTrajet(id);
+    else if (bouton.dataset.action === 'supprimer') supprimerTrajet(id);
+    else if (bouton.dataset.action === 'distance') calculerDistanceTrajet(id);
+});
+conteneur.addEventListener('input', (e) => {
+    if (e.target.dataset.adresse) verifierAdresses(Number(e.target.dataset.adresse));
+    planifierRafraichissement();
+});
+conteneur.addEventListener('change', (e) => {
+    if (e.target.dataset.dates) majNombreDeFois(Number(e.target.dataset.dates));
+    if (e.target.dataset.ar) majAffichageDistance(trouver(Number(e.target.dataset.ar)));
+    planifierRafraichissement();
+});
+['nom-client', 'cv', 'annee'].forEach((id) => {
+    $(id).addEventListener('input', planifierRafraichissement);
+    $(id).addEventListener('change', planifierRafraichissement);
+});
+$('btn-ajouter').addEventListener('click', ajouterTrajet);
+$('btn-calculer').addEventListener('click', () => {
+    if (calculerIK()) $('titre-recap').scrollIntoView({ behavior: comportementScroll(), block: 'start' });
+});
+$('btn-pdf').addEventListener('click', telechargerPDF);
+
+// ── Démarrage ─────────────────────────────────────────────────────────────────
+creerTrajet();
 </script>
 </body>
 </html>
