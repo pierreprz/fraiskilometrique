@@ -81,6 +81,13 @@
     background: #fff; border: 1px solid var(--border-strong); border-radius: 8px;
   }
   input::placeholder { color: #8A90A3; }
+  input[type=date] { display: block; min-width: 0; }
+  /* iPhone / iPad (Safari iOS) : le champ date natif impose sa propre largeur
+     minimale et sa propre hauteur ; on le ramène au style des autres champs. */
+  @supports (-webkit-touch-callout: none) {
+    input[type=date] { -webkit-appearance: none; appearance: none; height: 44px; }
+    input[type=date]::-webkit-date-and-time-value { text-align: left; }
+  }
   input:focus-visible, select:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; border-color: var(--teal); }
   .grid { display: grid; gap: 14px 16px; }
   .grid-2 { grid-template-columns: 1fr 1fr; }
@@ -195,6 +202,7 @@
     .intro h1 { font-size: 1.4rem; }
   }
   @media (max-width: 480px) {
+    .grid-dates { grid-template-columns: 1fr; }
     .page { padding: 20px 14px 40px; }
     .btn-ghost .btn-text { display: none; }
     .montant-value { font-size: 1.7rem; }
